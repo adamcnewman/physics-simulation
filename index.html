@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stern Gerlach Experiment</title>
+
+    <style>
+
+        body {
+            font-family: sans-serif;
+            font-size:15px;
+            width:1100px;
+            margin-left:auto;
+            margin-right:auto;
+            background-color:#c5e2ff;
+        }
+
+        h1 {
+            font-size:32px;
+            text-align:center;
+            color:Navy;
+        }
+
+        #canvas-container {
+            margin: auto;
+            display: flex;
+            justify-content: center;    /* Center canvas horizontally.  */
+            align-items: center;        /* Center canvas vertically.    */
+        }
+
+    </style>
+
+
+
+</head>
+
+<body>
+    <h1>
+        Stern-Gerlach Experiment
+    </h1>
+
+    <div id="canvas-container">
+    </div>
+
+    <!--- Javascript --->
+    
+    <script>
+        /* Canvas */
+        let canvas;
+        let canvas_width = 1400;
+        let canvas_height = 600;
+        let bg_color = 245;
+        let stroke_weight = 0.1;
+
+        /* Interactive Components */
+        let reset_button;
+        let reset_button_x = canvas_width/2 - 120;
+        let reset_button_y = canvas_height + 100;
+
+        let fire_button;
+        let fire_button_x;
+        let fire_button_y;
+
+        let atom_speed_slider;
+        let atom_speed_slider_x;
+        let atom_speed_slider_y;
+
+        let angle_slider;
+        let angle_slider_x;
+        let angle_slider_y;
+
+        let angle_display;
+        let angle_display_x;
+        let angle_display_y;
+
+        let counter;
+        let counter_x;
+        let counter_y;
+        let counter_str;
+
+        let num_spin_up = 0;
+        let num_spin_down = 0;
+
+        /* Platform */
+        let platform_l = 500;
+        let platform_w = 500;
+        let platform_h = -100;
+
+        /* Oven */
+        let oven = {
+            x:      -platform_l/2, 
+            y:      0, 
+            z:      0,
+            length: 50, 
+            width:  50, 
+            height: 50
+        };
+
+        /* Detector Screen */
+        let detector = {
+            x:      platform_l/2, 
+            y:      0, 
+            z:      0, 
+            width:  100, 
+            height: 160,
+            angle:  90
+        };
+
+        /* Perspective Line Coordinates */
+        let perspective_line = {
+            p1: {
+                x: oven.x,
+                y: 0,
+                z: 0
+            },
+            p2: {
+                x: detector.x,
+                y: 0,
+                z: 0
+            }
+        };
+
+        /* Magnet */
+        let magnet = {
+            length:     150,
+            width:      40,
+            height:     30,
+            entrance_x: -150/2, // - magnet length / 2
+            exit_x:     150/2,
+            gap:        90,
+            angle:      90
+        };
+
+        /* Atom */ 
+        let fire;
+
+        let atom = {
+            // Sphere Attributes
+            radius:     10,
+            detailX:    8,
+            detailY:    8,
+
+            // Properties
+            spin:       0,
+            speed:      1,
+            min_speed:  1, 
+            max_speed:  50,
+
+            // Coordinates
+            pos: { // Current position of atom
+                x: 0,
+                y: 0,
+                z: 0
+            },
+
+            start: { // Starting position of atom
+                x: oven.x,
+                y: 0,
+                z: 0
+            },
+
+            end: { // End position of atom
+                x: detector.x,
+                y: 50,
+                z: 0
+            }
+        };
+
+        /* Atom Trajectory */
+        let trajectory = {
+            start:  atom.start,
+
+            p1: { // Bezier curve control point 1
+                x: magnet.entrance_x, // Start curving atom at magnet entrance
+                y: 0,
+                z: 0
+            },
+
+            p2: { // Bezier curve control point 2
+                x: magnet.exit_x, // Arbitrary, but this x value makes a good curve
+                y: 0,
+                z: 0
+            },
+
+            end:    atom.end
+        };
+        
+        /* For Atom Spin */
+        let up = 1;
+        let down = 0;
+        
+
+        /* Atom Spin Vector Arrow */
+        let show_spin_vector = true;
+        let vector_x = 0;
+        let vector_y = 0;
+        let vector_z = 0;
+
+        let vector_arrow_offset = atom.radius;
+
+        let vector_stem_radius = atom.radius/10;
+        let vector_stem_height = atom.radius;
+        let vector_stem_x = atom.pos.x;
+        let vector_stem_y = atom.pos.y;
+        let vector_stem_z = atom.pos.z;
+
+        let cone_radius = 2 * vector_stem_radius;
+        let cone_height = vector_stem_height/3;
+
+
+/////////////////////////////////////////////////////
+
+        /* Setup the canvas */
+        function setup() {
+            canvas_width = 0.9 * windowWidth;
+            canvas_height = 0.8 * windowHeight;
+            canvas = createCanvas(canvas_width, canvas_height, WEBGL);
+            canvas.parent("canvas-container");
+            angleMode(DEGREES);
+            // debugMode(100, 10, 0, 0, 0, 20, -250, -100, 0);
+            setupInteractiveComponents();
+            resetAtom();
+            setSpin();
+        }
+
+
+        /* Draw onto the canvas */
+        function draw() {
+            background(bg_color);
+            orbitControl(.50, .50, .03);
+
+            drawPerspectiveLine();
+            drawPlatform();            
+            drawOven();
+            drawDetectorScreen();
+            drawMagnet();
+            if (fire == true) // Fire the atom normally
+                fireAtom(spin);
+            else // Draw atom stuck to detector screen
+                drawAtom(spin, atom.pos.x, atom.pos.y, atom.pos.z);
+
+            drawHTML();
+        }
+
+
+        function setupInteractiveComponents() {
+            reset_button = createButton('Reset');
+            reset_button.position(canvas_width/2 - 120, canvas_height + 100);
+            reset_button.mousePressed(reset);
+
+            fire_button = createButton('Fire Atom');
+            fire_button.position(canvas_width/2 - 50, canvas_height + 100);
+            fire_button.mousePressed(fireSingleAtom);
+
+            // atom_radius_slider = createSlider(1, 15, 5);
+            // atom_radius_slider.position(10, height + 5);
+            // atom_radius_slider.style('width', '80px');
+
+            atom_speed_slider = createSlider(atom.min_speed, atom.max_speed, atom.max_speed/2, 1); // min max start step
+            atom_speed_slider.position(canvas_width/2 + 160, canvas_height + 100);
+            atom_speed_slider.style('width', '80px');
+            speed_display = createP();
+            speed_display.position(canvas_width/2 + 160, canvas_height + 110);
+
+            angle_slider = createSlider(0, 360, 0, 15); // min max start step
+            angle_slider.position(canvas_width/2 + 40, canvas_height + 100);
+            angle_slider.style('width', '80px');
+            angle_display = createP();
+            angle_display.position(canvas_width/2 + 45, canvas_height + 110);
+
+            counter = createP();
+            counter.position(50, canvas_height + 100);
+        }
+
+
+        function windowResized() {
+            resizeCanvas(0.9*windowWidth, windowHeight - 150);
+        }   
+
+        function setSpin() {
+            let r = random(2);
+            spin = floor(r % 2);
+        }
+      
+        
+        function drawAxis() {
+            push(); 
+            let x = 15;
+            let y = 15;
+            let z = 15;
+            line(-x, 0, 0, x, 0, 0); // l to r (x)
+            line(0, -y, 0, 0, y, 0); // d to u (y)
+            line(0, 0, -z, 0, 0, z); // f to b (z)
+            pop();
+        }
+
+
+        /* Draws perspective line that diagram will be positioned on */
+        function drawPerspectiveLine() {
+            push();
+            line(perspective_line.p1.x, perspective_line.p1.y, perspective_line.p1.z, 
+            perspective_line.p2.x, perspective_line.p2.y, perspective_line.p2.z);
+            // line(-500, 100, 0, 500, -100, 0);
+            pop();
+        }
+
+
+        function drawPlatform() {
+            push(); 
+            rotateX(90);
+            translate(0, 0, platform_h);
+            plane(platform_l, platform_w, 1, 1);
+            pop();
+        }
+
+
+        function drawOven() {
+            push();
+            fill(150, 150, 150); // Dark grey
+            translate(oven.x, oven.y, oven.z);
+            box(oven.width, oven.height, oven.length);
+            pop();
+        }
+
+
+        function drawDetectorScreen() {
+            push(); 
+            detector.angle = angle_slider.value();                      
+            rotateX(detector.angle);         // uncomment to rotate magnets by 90      
+            fill(220, 220, 220); // Light grey
+            translate(detector.x, 0, 0);
+            rotateY(90);
+            plane(detector.width, detector.height); // width, height
+            pop();
+        }
+
+
+        function drawMagnet() {
+            push();  
+            magnet.angle = angle_slider.value();                      
+            rotateX(magnet.angle); 
+
+            /* TOP */
+            push();
+            smooth();
+            fill(240, 130, 130);
+            translate(0, -magnet.gap/2, 0);
+            box(magnet.length, magnet.height, magnet.width);
+            pop();
+
+            //top add on
+            push();
+            smooth();
+            fill(240, 130, 130);
+            translate(0, -magnet.gap/2 + magnet.height/2 - 8, 0);
+            rotateX(45);
+            box(magnet.length - 2, magnet.height - 3, magnet.height - 3);
+            pop();
+            /* END TOP */
+
+            
+            /* BOTTOM */
+            push();
+            smooth();
+            fill(130, 150, 220);
+            translate(0, magnet.gap/2, 0);
+            box(magnet.length, magnet.height, magnet.width);
+            pop();
+
+            // bottom add ons
+            push();
+            smooth();
+            fill(150, 170, 240);
+            translate(0, magnet.gap/2 - 10, magnet.width/2.75);
+            box(magnet.length - 2, magnet.height, magnet.width/4);
+            pop();
+
+            push();
+            smooth();
+            fill(150, 170, 240);
+            translate(0, magnet.gap/2 - 10, -magnet.width/2.75);
+            box(magnet.length - 2, magnet.height, magnet.width/4);
+            pop();
+            /* END BOTTOM */
+
+            pop();
+        }
+
+        
+        function drawAtom(spin, x, y, z) {
+            // drawSpinVector(spin, x, y, z);
+            push();
+            // atom.radius = atom_radius_slider.value(); // Uncomment To allow user to change radius of atom
+            let angle = angle_slider.value();
+            rotateX(angle); // Rotate atom trajectory by the same angle of the magnet
+            translate(x, y, z);
+
+            strokeWeight(stroke_weight);
+            if (spin == up && atomEnteredMagnet())
+                fill(250, 100, 100); // Red
+            else if (spin == down && atomEnteredMagnet())
+                fill(60, 80, 240); // Blue
+            else // Atom has not entered the magnet
+                fill(200,200,200); // Grey
+            sphere(atom.radius, atom.detailX, atom.detailY);
+            pop();
+        }
+
+
+        function drawSpinVector(spin, x, y, z) {
+            if (show_spin_vector == true) {
+
+                
+                if (spin == up && vector_arrow_offset > 0) vector_arrow_offset = vector_arrow_offset * -1;
+                let stem_y = y - vector_arrow_offset;
+                let head_y = y + vector_stem_height/2 - vector_arrow_offset;
+                
+                push();
+                // rotateX(180); // Orient to appropriate angle
+
+
+                /* Stem */
+                push();
+                fill(150, 200, 200); // Light Cyan
+                strokeWeight(stroke_weight);
+                translate(x, stem_y, z);
+                cylinder(vector_stem_radius, vector_stem_height, 9, 1);
+                pop();
+                
+                
+                /* Arrow head */
+                push();
+                fill(50, 200, 200); // Cyan
+                strokeWeight(stroke_weight);
+                translate(x, head_y, z);
+                cone(cone_radius, cone_height, 9, 1, false);
+                pop();
+
+                pop();
+            }
+        }
+
+
+        function fireAtom(spin) {
+            if (atomHitDetector() == false) { // Atom has not hit detector screen
+                fire = true
+                computeAtomTrajectory()
+            } else if (atomHitDetector() == true) {
+                fire = false;
+                atom.pos.x = atom.end.x;
+                incrementAtomCounter();
+            }
+            drawAtom(spin, atom.pos.x, atom.pos.y, atom.pos.z);
+        }
+
+
+        function atomEnteredMagnet() {
+            return atom.pos.x + atom.radius > magnet.entrance_x;
+        }
+
+
+        function atomHitDetector() {
+            return (norm(atom.pos.x, atom.start.x, atom.end.x) >= 1.0) ? true : false;
+        }
+
+
+        function computeAtomTrajectory() {
+            atom.speed = atom_speed_slider.value();
+            atom.pos.x += atom.speed;
+            let curve_distance_percent = norm(atom.pos.x, atom.start.x, atom.end.x);
+
+            let p = getCubicBezierXYatPercent(
+                trajectory.start,
+                trajectory.p1,
+                trajectory.p2,
+                trajectory.end,
+                curve_distance_percent
+            );
+            atom.pos.y = p.y;
+            if (spin == up)
+                atom.pos.y *= -1;
+        }   
+
+        /* REFERENCE FOR getCubicBezierXYatPercent and cubicN:
+            https://stackoverflow.com/questions/17083580/i-want-to-do-animation-of-an-object-along-a-particular-path 
+         */
+        // cubic bezier percent is 0-1
+        // Note that currently only the y value is used, but leaving the x and z for future use.
+        function getCubicBezierXYatPercent(startPt,controlPt1,controlPt2,endPt,percent){
+            let x = cubicN(percent,startPt.x,controlPt1.x,controlPt2.x,endPt.x);
+            let y = cubicN(percent,startPt.y,controlPt1.y,controlPt2.y,endPt.y);
+            let z = cubicN(percent,startPt.z,controlPt1.z,controlPt2.z,endPt.z);
+            return({x: x, y: y, z: z});
+        }
+
+        // cubic bezier helper formula at percent distance
+        function cubicN(pct,a,b,c,d) {
+            let t2 = pct * pct;
+            let t3 = t2 * pct;
+            return a + (-a * 3 + pct * (3 * a - a * pct)) * pct
+            + (3 * b + pct * (-6 * b + b * 3 * pct)) * pct
+            + (c * 3 - c * 3 * pct) * t2
+            + d * t3;
+        }
+
+        function incrementAtomCounter() {
+            (spin == up) ? num_spin_up++ : num_spin_down++; // Add to counter
+        }
+
+        function fireSingleAtom() {
+            resetAtom();
+            fireAtom(spin);
+        }
+
+        function drawHTML() {
+            counter.html('# spin up (red): ' + num_spin_up + '\n# spin down (blue): ' + num_spin_down);
+            angle_display.html(angle_slider.value() + '°'); // Display angle value under slider
+            speed_display.html('Speed: ' + atom_speed_slider.value());
+        }
+
+        function resetAtom() {
+            setSpin();
+            atom.pos.x = atom.start.x;
+            atom.pos.y = atom.start.y;
+            atom.pos.z = atom.start.z;
+            dx = 0;
+            dy = 0;
+            dz = 0;
+            i = 0;
+        }
+
+        function reset() {
+            resetAtom();
+            num_spin_down = 0;
+            num_spin_up = 0;
+        }
+        
+
+    </script>
+
+    <!-- p5.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.min.js" integrity="sha512-NxocnqsXP3zm0Xb42zqVMvjQIktKEpTIbCXXyhBPxqGZHqhcOXHs4pXI/GoZ8lE+2NJONRifuBpi9DxC58L0Lw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    </script>
+
+</body>
+</html>
+
+
