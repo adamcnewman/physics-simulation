@@ -194,21 +194,32 @@
 
         /* Atom Spin Vector Arrow */
         let show_spin_vector = true;
-        let vector_x = 0;
-        let vector_y = 0;
-        let vector_z = 0;
 
-        let vector_arrow_offset = atom.radius;
+        let spin_vector = {
+            pos: {
+                x: 0,
+                y: 0,
+                z: 0
+            },
 
-        let vector_stem_radius = atom.radius/10;
-        let vector_stem_height = atom.radius;
-        let vector_stem_x = atom.pos.x;
-        let vector_stem_y = atom.pos.y;
-        let vector_stem_z = atom.pos.z;
+            offset: atom.radius,
 
-        let cone_radius = 2 * vector_stem_radius;
-        let cone_height = vector_stem_height/3;
+            stem: {
+                pos: {
+                    x: atom.pos.x,
+                    y: atom.pos.y,
+                    z: atom.pos.z
+                },
+                radius: atom.radius/10,
+                height: atom.radius
+            },
 
+            head: {
+                radius: atom.radius/5,
+                height: atom.radius/3
+            }
+
+        }
 
 /////////////////////////////////////////////////////
 
@@ -278,13 +289,7 @@
         function windowResized() {
             resizeCanvas(0.9*windowWidth, windowHeight - 150);
         }   
-
-        function setSpin() {
-            let r = random(2);
-            spin = floor(r % 2);
-        }
       
-        
         function drawAxis() {
             push(); 
             let x = 15;
@@ -295,7 +300,6 @@
             line(0, 0, -z, 0, 0, z); // f to b (z)
             pop();
         }
-
 
         /* Draws perspective line that diagram will be positioned on */
         function drawPerspectiveLine() {
@@ -411,35 +415,37 @@
 
         function drawSpinVector(spin, x, y, z) {
             if (show_spin_vector == true) {
-
-                
-                if (spin == up && vector_arrow_offset > 0) vector_arrow_offset = vector_arrow_offset * -1;
-                let stem_y = y - vector_arrow_offset;
-                let head_y = y + vector_stem_height/2 - vector_arrow_offset;
+                if (spin == up && spin_vector.offset > 0) spin_vector.offset = spin_vector.offset * -1;
+                let stem_y = y - spin_vector.offset;
+                let head_y = y + spin_vector.stem.height/2 - spin_vector.offset;
                 
                 push();
-                // rotateX(180); // Orient to appropriate angle
-
+                rotateX(180); // Orient to appropriate angle
 
                 /* Stem */
                 push();
                 fill(150, 200, 200); // Light Cyan
                 strokeWeight(stroke_weight);
                 translate(x, stem_y, z);
-                cylinder(vector_stem_radius, vector_stem_height, 9, 1);
+                cylinder(spin_vector.stem.radius, spin_vector.stem.height, 9, 1);
                 pop();
-                
                 
                 /* Arrow head */
                 push();
                 fill(50, 200, 200); // Cyan
                 strokeWeight(stroke_weight);
                 translate(x, head_y, z);
-                cone(cone_radius, cone_height, 9, 1, false);
+                cone(spin_vector.head.radius, spin_vector.head.height, 9, 1, false);
                 pop();
 
                 pop();
             }
+        }
+
+        
+        function setSpin() {
+            let r = random(2);
+            spin = floor(r % 2);
         }
 
 
