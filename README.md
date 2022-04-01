@@ -1,8 +1,8 @@
-# stern-gerlach-simulation
+# Physics Simulation
 
-3D Web Simulation of the Stern-Gerlach Simulation
+3D Web Simulation of the Stern-Gerlach Physics Experiment
 
-This is being developed for the purpose of providing students at my university with a more interactive and immersive experience in learning about this particular physics experiment.
+This is being developed for the purpose of providing physics students at my university with a more interactive and immersive experience for learning about this particular physics experiment.
 
 # Technologies Used
 
