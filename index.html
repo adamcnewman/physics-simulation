@@ -80,17 +80,22 @@
         let counter_y;
         let counter_str;
 
+        let atom_source_select;
+        let atom_source = 'Oven';
+
         let num_spin_up = 0;
         let num_spin_down = 0;
 
         /* Platform */
-        let platform_l = 500;
-        let platform_w = 500;
-        let platform_h = -100;
+        let platform = {
+            length:  500,
+            width:   500,
+            height:  -100
+        };
 
         /* Oven */
         let oven = {
-            x:      -platform_l/2, 
+            x:      -platform.length/2, 
             y:      0, 
             z:      0,
             length: 50, 
@@ -100,7 +105,7 @@
 
         /* Detector Screen */
         let detector = {
-            x:      platform_l/2, 
+            x:      platform.length/2, 
             y:      0, 
             z:      0, 
             width:  100, 
@@ -188,10 +193,10 @@
         };
         
         /* For Atom Spin */
-        let up = 1;
-        let down = 0;
+        let up = 1/2;
+        let down = -1/2;
+        let unknown = 0;
         
-
         /* Atom Spin Vector Arrow */
         let show_spin_vector = true;
 
@@ -244,7 +249,7 @@
 
             drawPerspectiveLine();
             drawPlatform();            
-            drawOven();
+            drawAtomSource();
             drawDetectorScreen();
             drawMagnet();
             if (fire == true) // Fire the atom normally
@@ -257,38 +262,68 @@
 
 
         function setupInteractiveComponents() {
+            let h = 0.95*windowHeight;
+            let w = windowWidth/2;
             reset_button = createButton('Reset');
-            reset_button.position(canvas_width/2 - 120, canvas_height + 100);
+            reset_button.position(w - 120, h);
             reset_button.mousePressed(reset);
 
             fire_button = createButton('Fire Atom');
-            fire_button.position(canvas_width/2 - 50, canvas_height + 100);
+            fire_button.position(w - 50, h);
             fire_button.mousePressed(fireSingleAtom);
 
             // atom_radius_slider = createSlider(1, 15, 5);
             // atom_radius_slider.position(10, height + 5);
             // atom_radius_slider.style('width', '80px');
 
-            atom_speed_slider = createSlider(atom.min_speed, atom.max_speed, atom.max_speed/2, 1); // min max start step
-            atom_speed_slider.position(canvas_width/2 + 160, canvas_height + 100);
+            atom_speed_slider = createSlider(atom.min_speed, atom.max_speed, atom.max_speed/5, 1); // min max start step
+            atom_speed_slider.position(w + 160, h);
             atom_speed_slider.style('width', '80px');
             speed_display = createP();
-            speed_display.position(canvas_width/2 + 160, canvas_height + 110);
+            speed_display.position(w + 160, h+5);
 
             angle_slider = createSlider(0, 360, 0, 15); // min max start step
-            angle_slider.position(canvas_width/2 + 40, canvas_height + 100);
+            angle_slider.position(w + 40, h);
             angle_slider.style('width', '80px');
             angle_display = createP();
-            angle_display.position(canvas_width/2 + 45, canvas_height + 110);
+            angle_display.position(w + 45, h+5);
+
+            atom_source_select = createSelect();
+            atom_source_select.position(w - 250, h);
+            atom_source_select.option('Oven');
+            atom_source_select.option('Spin Up (Z+)');
+            atom_source_select.option('Spin Down (Z-)');
+            atom_source_select.changed(sourceSelected);
 
             counter = createP();
-            counter.position(50, canvas_height + 100);
+            counter.position(50, h);
+        }
+
+
+        function sourceSelected () {
+            atom_source = atom_source_select.value();
+            reset();
         }
 
 
         function windowResized() {
-            resizeCanvas(0.9*windowWidth, windowHeight - 150);
+            resizeCanvas(0.9*windowWidth, 0.8*windowHeight);
+            repositionInteractiveComponents();
         }   
+
+        function repositionInteractiveComponents() {
+            let h = 0.95*windowHeight;
+            let w = windowWidth/2;
+            reset_button.position(w - 120, h);
+            fire_button.position(w - 50, h);
+            atom_speed_slider.position(w + 160, h);
+            speed_display.position(w + 160, h + 5);
+            angle_slider.position(w + 40, h);
+            angle_display.position(w + 45, h + 5);
+            atom_source_select.position(w - 250, h);
+            counter.position(50, h);
+
+        }
       
         function drawAxis() {
             push(); 
@@ -305,8 +340,7 @@
         function drawPerspectiveLine() {
             push();
             line(perspective_line.p1.x, perspective_line.p1.y, perspective_line.p1.z, 
-            perspective_line.p2.x, perspective_line.p2.y, perspective_line.p2.z);
-            // line(-500, 100, 0, 500, -100, 0);
+                 perspective_line.p2.x, perspective_line.p2.y, perspective_line.p2.z);
             pop();
         }
 
@@ -314,8 +348,8 @@
         function drawPlatform() {
             push(); 
             rotateX(90);
-            translate(0, 0, platform_h);
-            plane(platform_l, platform_w, 1, 1);
+            translate(0, 0, platform.height);
+            plane(platform.length, platform.width, 1, 1);
             pop();
         }
 
@@ -326,6 +360,18 @@
             translate(oven.x, oven.y, oven.z);
             box(oven.width, oven.height, oven.length);
             pop();
+        }
+
+
+        function drawAtomSource() {
+            if (atom_source == 'Oven') {
+                drawOven();
+            } else { 
+                drawSourceMagnet();
+                push();
+                colorAtom();
+                pop();
+            }
         }
 
 
@@ -392,6 +438,55 @@
             pop();
         }
 
+        function drawSourceMagnet() {
+            push();  
+            translate(-platform.length/1.5, 0, 0);
+
+            /* TOP */
+            push();
+            smooth();
+            fill(240, 130, 130);
+            translate(0, -magnet.gap/2, 0);
+            box(magnet.length, magnet.height, magnet.width);
+            pop();
+
+            //top add on
+            push();
+            smooth();
+            fill(240, 130, 130);
+            translate(0, -magnet.gap/2 + magnet.height/2 - 8, 0);
+            rotateX(45);
+            box(magnet.length - 2, magnet.height - 3, magnet.height - 3);
+            pop();
+            /* END TOP */
+
+            /* BOTTOM */
+            push();
+            smooth();
+            fill(130, 150, 220);
+            translate(0, magnet.gap/2, 0);
+            box(magnet.length, magnet.height, magnet.width);
+            pop();
+
+            // bottom add ons
+            push();
+            smooth();
+            fill(150, 170, 240);
+            translate(0, magnet.gap/2 - 10, magnet.width/2.75);
+            box(magnet.length - 2, magnet.height, magnet.width/4);
+            pop();
+
+            push();
+            smooth();
+            fill(150, 170, 240);
+            translate(0, magnet.gap/2 - 10, -magnet.width/2.75);
+            box(magnet.length - 2, magnet.height, magnet.width/4);
+            pop();
+            /* END BOTTOM */
+
+            pop();
+        }
+
         
         function drawAtom(spin, x, y, z) {
             // drawSpinVector(spin, x, y, z);
@@ -400,16 +495,25 @@
             let angle = angle_slider.value();
             rotateX(angle); // Rotate atom trajectory by the same angle of the magnet
             translate(x, y, z);
-
             strokeWeight(stroke_weight);
+            colorAtom();
+            sphere(atom.radius, atom.detailX, atom.detailY);
+            pop();
+        }
+
+        function colorAtom() {
+          //  push();
             if (spin == up && atomEnteredMagnet())
                 fill(250, 100, 100); // Red
             else if (spin == down && atomEnteredMagnet())
                 fill(60, 80, 240); // Blue
-            else // Atom has not entered the magnet
+            else if (atom_source == 'Spin Up (Z+)' && !atomEnteredMagnet())
+                fill(250, 100, 100); // Red
+            else if (atom_source == 'Spin Down (Z-)' && !atomEnteredMagnet())
+                fill(60, 80, 240); // Blue
+            else
                 fill(200,200,200); // Grey
-            sphere(atom.radius, atom.detailX, atom.detailY);
-            pop();
+            //pop();
         }
 
 
@@ -445,7 +549,7 @@
         
         function setSpin() {
             let r = random(2);
-            spin = floor(r % 2);
+            spin = floor(r % 2) == 0 ? up : down;
         }
 
 
@@ -519,6 +623,7 @@
             resetAtom();
             fireAtom(spin);
         }
+
 
         function drawHTML() {
             counter.html('# spin up (red): ' + num_spin_up + '\n# spin down (blue): ' + num_spin_down);

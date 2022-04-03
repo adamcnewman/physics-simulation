@@ -7,4 +7,3 @@ This is being developed for the purpose of providing physics students at my univ
 ## Technologies Used
 
 HTML, CSS, Javascript, p5.js Javascript library
-
