@@ -31,9 +31,6 @@
         }
 
     </style>
-
-
-
 </head>
 
 <body>
@@ -44,60 +41,57 @@
     <div id="canvas-container">
     </div>
 
-    <!--- Javascript --->
-    
     <script>
-        /* Canvas */
+        /* CANVAS */
         let canvas;
         let canvas_width = 1400;
         let canvas_height = 600;
         let bg_color = 245;
         let stroke_weight = 0.1;
 
-        /* Interactive Components */
+        /* INTERACTIVE COMPONENETS */
         let reset_button;
         let reset_button_x = canvas_width/2 - 120;
         let reset_button_y = canvas_height + 100;
-
         let fire_button;
         let fire_button_x;
         let fire_button_y;
-
         let atom_speed_slider;
         let atom_speed_slider_x;
         let atom_speed_slider_y;
-
         let angle_slider;
         let angle_slider_x;
         let angle_slider_y;
-
         let angle_display;
         let angle_display_x;
         let angle_display_y;
-
         let counter;
         let counter_x;
         let counter_y;
-        let counter_str;
-
+        let percent_counter;
+        let percent_counter_x;
+        let percent_counter_y; 
         let atom_source_select;
-        let atom_source = 'Oven';
-
         let autofire_checkbox;
-        let autofire = false;
 
+        /* STATES */
+        let fire = false;
+        let autofire = false;
+        let spin_chosen = false;
+        let up = 1/2;
+        let down = -1/2;
+        let atom_source = 'Oven';
         let num_spin_up = 0;
         let num_spin_down = 0;
-        let percent_spin_up = num_spin_up + num_spin_down
 
-        /* Platform */
+        /* PLATFORM */
         let platform = {
             length:  500,
             width:   500,
             height:  -100
         };
 
-        /* Oven */
+        /* OVEN */
         let oven = {
             x:      -platform.length/2, 
             y:      0, 
@@ -107,7 +101,7 @@
             height: 50
         };
 
-        /* Detector Screen */
+        /* DETECTOR SCREEN */
         let detector = {
             x:      platform.length/2, 
             y:      0, 
@@ -117,7 +111,7 @@
             angle:  90
         };
 
-        /* Perspective Line Coordinates */
+        /* PERSPECTIVE LINE */
         let perspective_line = {
             p1: {
                 x: oven.x,
@@ -131,7 +125,7 @@
             }
         };
 
-        /* Magnet */
+        /* MAGNET */
         let magnet = {
             length:     150,
             width:      40,
@@ -142,34 +136,28 @@
             angle:      90
         };
 
-        /* Atom */ 
-        let fire;
-
+        /* ATOM */ 
         let atom = {
             // Sphere Attributes
             radius:     10,
             detailX:    8,
             detailY:    8,
-
             // Properties
             spin:       0,
             speed:      1,
             min_speed:  1, 
             max_speed:  50,
-
             // Coordinates
             pos: { // Current position of atom
                 x: 0,
                 y: 0,
                 z: 0
             },
-
             start: { // Starting position of atom
                 x: oven.x,
                 y: 0,
                 z: 0
             },
-
             end: { // End position of atom
                 x: detector.x,
                 y: 50,
@@ -177,7 +165,7 @@
             }
         };
 
-        /* Atom Trajectory */
+        /* ATOM TRAJECTORY */
         let trajectory = {
             start:  atom.start,
 
@@ -186,26 +174,17 @@
                 y: 0,
                 z: 0
             },
-
             p2: { // Bezier curve control point 2
                 x: magnet.exit_x, // Arbitrary, but this x value makes a good curve
                 y: 0,
                 z: 0
             },
-
             end:    atom.end
         };
-        
-        /* For Atom Spin */
-        let up = 1/2;
-        let down = -1/2;
-        let unknown = 0;
-        let spin_chosen = false;
-/////////////////////////////////////////////////////
 
         /* Setup the canvas */
         function setup() {
-            // canvas_width = 0.9 * windowWidth;
+            canvas_width = 0.9 * windowWidth;
             canvas_height = 0.8 * windowHeight;
             canvas = createCanvas(canvas_width, canvas_height, WEBGL);
             canvas.parent("canvas-container");
@@ -214,7 +193,6 @@
             setupInteractiveComponents();
             resetAtom();
         }
-
 
         /* Draw onto the canvas */
         function draw() {
@@ -231,9 +209,7 @@
             else if (!fire) // Draw atom stuck to detector screen
                 drawAtom(atom.spin, atom.pos.x, atom.pos.y, atom.pos.z);
             drawHTML();
-            // console.log(autofire);
         }
-
 
         function setupInteractiveComponents() {
             let h = 0.95*windowHeight;
@@ -275,6 +251,9 @@
 
             counter = createP();
             counter.position(50, h);
+
+            percent_counter = createP();
+            percent_counter.position(50, h - 20);
         }
 
         function sourceSelected () {
@@ -306,7 +285,14 @@
         }
 
         function drawHTML() {
-            counter.html('# spin up (red): ' + num_spin_up + '\n# spin down (blue): ' + num_spin_down);
+            let percent_spin_up = ceil(100 * num_spin_up / (num_spin_up + num_spin_down));
+            let percent_spin_down = 100 - percent_spin_up;
+            if (num_spin_up == 0) { 
+                percent_spin_up = 0;
+                percent_spin_down = 0;
+            }
+            counter.html('# spin up (red): ' + num_spin_up + '     # spin down (blue): ' + num_spin_down);
+            percent_counter.html('spin up (red): ' + percent_spin_up + '%     ' + 'spin down (blue): ' + percent_spin_down + '%');
             angle_display.html(angle_slider.value() + '°'); // Display angle value under slider
             speed_display.html('Speed: ' + atom_speed_slider.value());
         }
@@ -485,7 +471,6 @@
                 let angle = angle_slider.value();
                 let r = random(100) / 100;
                 let p = sq(cos(angle/2));
-                console.log(r, p);
 
                 if (atom_source == 'Spin Up (Z+)') {
                     if (r <= p)
@@ -631,62 +616,3 @@
 
 </body>
 </html>
-
-<!-- /* Atom Spin Vector Arrow */
-let show_spin_vector = true;
-
-let spin_vector = {
-    pos: {
-        x: 0,
-        y: 0,
-        z: 0
-    },
-
-    offset: atom.radius,
-
-    stem: {
-        pos: {
-            x: atom.pos.x,
-            y: atom.pos.y,
-            z: atom.pos.z
-        },
-        radius: atom.radius/10,
-        height: atom.radius
-    },
-
-    head: {
-        radius: atom.radius/5,
-        height: atom.radius/3
-    }
-
-} -->
-
-
-<!-- function drawSpinVector(spin, x, y, z) {
-    if (show_spin_vector == true) {
-        if (spin == up && spin_vector.offset > 0) spin_vector.offset = spin_vector.offset * -1;
-        let stem_y = y - spin_vector.offset;
-        let head_y = y + spin_vector.stem.height/2 - spin_vector.offset;
-        
-        push();
-        rotateX(180); // Orient to appropriate angle
-
-        /* Stem */
-        push();
-        fill(150, 200, 200); // Light Cyan
-        strokeWeight(stroke_weight);
-        translate(x, stem_y, z);
-        cylinder(spin_vector.stem.radius, spin_vector.stem.height, 9, 1);
-        pop();
-        
-        /* Arrow head */
-        push();
-        fill(50, 200, 200); // Cyan
-        strokeWeight(stroke_weight);
-        translate(x, head_y, z);
-        cone(spin_vector.head.radius, spin_vector.head.height, 9, 1, false);
-        pop();
-
-        pop();
-    }
-} -->
