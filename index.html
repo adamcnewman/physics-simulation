@@ -83,6 +83,9 @@
         let atom_source_select;
         let atom_source = 'Oven';
 
+        let autofire_checkbox;
+        let autofire = false;
+
         let num_spin_up = 0;
         let num_spin_down = 0;
 
@@ -178,7 +181,7 @@
             start:  atom.start,
 
             p1: { // Bezier curve control point 1
-                x: magnet.entrance_x, // Start curving atom at magnet entrance
+                x: magnet.entrance_x + 50, // Start curving atom at magnet entrance
                 y: 0,
                 z: 0
             },
@@ -197,12 +200,11 @@
         let down = -1/2;
         let unknown = 0;
         let spin_chosen = false;
-
 /////////////////////////////////////////////////////
 
         /* Setup the canvas */
         function setup() {
-            canvas_width = 0.9 * windowWidth;
+            // canvas_width = 0.9 * windowWidth;
             canvas_height = 0.8 * windowHeight;
             canvas = createCanvas(canvas_width, canvas_height, WEBGL);
             canvas.parent("canvas-container");
@@ -266,6 +268,10 @@
             atom_source_select.option('Spin Down (Z-)');
             atom_source_select.changed(sourceSelected);
 
+            autofire_checkbox = createCheckbox('Autofire', false);
+            autofire_checkbox.position(w - 50, h - 20);
+            autofire_checkbox.changed(toggleAutofire);
+
             counter = createP();
             counter.position(50, h);
         }
@@ -274,6 +280,11 @@
         function sourceSelected () {
             atom_source = atom_source_select.value();
             reset();
+        }
+
+
+        function toggleAutofire() {
+            autofire = checkbox.checked() ? true : false;
         }
 
 
@@ -292,6 +303,7 @@
             angle_slider.position(w + 40, h);
             angle_display.position(w + 45, h + 5);
             atom_source_select.position(w - 250, h);
+            autofire_checkbox.position(w - 50, h - 20);
             counter.position(50, h);
         }
       
@@ -569,7 +581,7 @@
             https://stackoverflow.com/questions/17083580/i-want-to-do-animation-of-an-object-along-a-particular-path 
          */
         // cubic bezier percent is 0-1
-        // Note that currently only the y value is used, but leaving the x and z for future use.
+        // Note that currently only the y result is used, but leaving the x and z for future use.
         function getCubicBezierXYatPercent(startPt,controlPt1,controlPt2,endPt,percent){
             let x = cubicN(percent,startPt.x,controlPt1.x,controlPt2.x,endPt.x);
             let y = cubicN(percent,startPt.y,controlPt1.y,controlPt2.y,endPt.y);
