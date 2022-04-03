@@ -196,35 +196,7 @@
         let up = 1/2;
         let down = -1/2;
         let unknown = 0;
-        
-        /* Atom Spin Vector Arrow */
-        let show_spin_vector = true;
-
-        let spin_vector = {
-            pos: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-
-            offset: atom.radius,
-
-            stem: {
-                pos: {
-                    x: atom.pos.x,
-                    y: atom.pos.y,
-                    z: atom.pos.z
-                },
-                radius: atom.radius/10,
-                height: atom.radius
-            },
-
-            head: {
-                radius: atom.radius/5,
-                height: atom.radius/3
-            }
-
-        }
+        let spin_chosen = false;
 
 /////////////////////////////////////////////////////
 
@@ -238,7 +210,6 @@
             // debugMode(100, 10, 0, 0, 0, 20, -250, -100, 0);
             setupInteractiveComponents();
             resetAtom();
-            setSpin();
         }
 
 
@@ -253,9 +224,9 @@
             drawDetectorScreen();
             drawMagnet();
             if (fire == true) // Fire the atom normally
-                fireAtom(spin);
+                fireAtom(atom.spin);
             else // Draw atom stuck to detector screen
-                drawAtom(spin, atom.pos.x, atom.pos.y, atom.pos.z);
+                drawAtom(atom.spin, atom.pos.x, atom.pos.y, atom.pos.z);
 
             drawHTML();
         }
@@ -322,7 +293,6 @@
             angle_display.position(w + 45, h + 5);
             atom_source_select.position(w - 250, h);
             counter.position(50, h);
-
         }
       
         function drawAxis() {
@@ -501,11 +471,40 @@
             pop();
         }
 
+
+        function chooseAtomSpin() {
+            if (atomEnteredMagnet()) {
+                let angle = angle_slider.value();
+                let r = random(100) / 100;
+                let p = sq(cos(angle/2));
+                console.log(r, p);
+
+                if (atom_source == 'Spin Up (Z+)') {
+                    if (r <= p)
+                        atom.spin = up;
+                    else
+                        atom.spin = down;
+                    spin_chosen = true;
+                } else if (atom_source == 'Spin Down (Z-)') {
+                    if (r <= p)
+                        atom.spin = down;
+                    else   
+                        atom.spin = up;
+                    spin_chosen = true;
+                }
+            }
+        }
+
+
+        function hasChosenSpin() {
+            return spin_chosen;
+        }
+
+
         function colorAtom() {
-          //  push();
-            if (spin == up && atomEnteredMagnet())
+            if (atom.spin == up && atomEnteredMagnet())
                 fill(250, 100, 100); // Red
-            else if (spin == down && atomEnteredMagnet())
+            else if (atom.spin == down && atomEnteredMagnet())
                 fill(60, 80, 240); // Blue
             else if (atom_source == 'Spin Up (Z+)' && !atomEnteredMagnet())
                 fill(250, 100, 100); // Red
@@ -513,56 +512,29 @@
                 fill(60, 80, 240); // Blue
             else
                 fill(200,200,200); // Grey
-            //pop();
-        }
-
-
-        function drawSpinVector(spin, x, y, z) {
-            if (show_spin_vector == true) {
-                if (spin == up && spin_vector.offset > 0) spin_vector.offset = spin_vector.offset * -1;
-                let stem_y = y - spin_vector.offset;
-                let head_y = y + spin_vector.stem.height/2 - spin_vector.offset;
-                
-                push();
-                rotateX(180); // Orient to appropriate angle
-
-                /* Stem */
-                push();
-                fill(150, 200, 200); // Light Cyan
-                strokeWeight(stroke_weight);
-                translate(x, stem_y, z);
-                cylinder(spin_vector.stem.radius, spin_vector.stem.height, 9, 1);
-                pop();
-                
-                /* Arrow head */
-                push();
-                fill(50, 200, 200); // Cyan
-                strokeWeight(stroke_weight);
-                translate(x, head_y, z);
-                cone(spin_vector.head.radius, spin_vector.head.height, 9, 1, false);
-                pop();
-
-                pop();
-            }
         }
 
         
         function setSpin() {
+
             let r = random(2);
-            spin = floor(r % 2) == 0 ? up : down;
+            
+            if (atom_source == 'Oven') atom.spin = floor(r % 2) == 0 ? up : down;
         }
 
 
         function fireAtom(spin) {
+            if (atomEnteredMagnet() && hasChosenSpin() == false)
+                chooseAtomSpin();
             if (atomHitDetector() == false) { // Atom has not hit detector screen
-                fire = true
-                computeAtomTrajectory()
+                fire = true;
+                computeAtomTrajectory();
             } else if (atomHitDetector() == true) {
                 fire = false;
                 atom.pos.x = atom.end.x;
                 incrementAtomCounter();
             }
-            drawAtom(spin, atom.pos.x, atom.pos.y, atom.pos.z);
+            drawAtom(atom.spin, atom.pos.x, atom.pos.y, atom.pos.z);
         }
 
 
@@ -589,7 +561,7 @@
                 curve_distance_percent
             );
             atom.pos.y = p.y;
-            if (spin == up)
+            if (atom.spin == up)
                 atom.pos.y *= -1;
         }   
 
@@ -616,14 +588,13 @@
         }
 
         function incrementAtomCounter() {
-            (spin == up) ? num_spin_up++ : num_spin_down++; // Add to counter
+            (atom.spin == up) ? num_spin_up++ : num_spin_down++; // Add to counter
         }
 
         function fireSingleAtom() {
             resetAtom();
-            fireAtom(spin);
+            fireAtom(atom.spin);
         }
-
 
         function drawHTML() {
             counter.html('# spin up (red): ' + num_spin_up + '\n# spin down (blue): ' + num_spin_down);
@@ -633,6 +604,7 @@
 
         function resetAtom() {
             setSpin();
+            spin_chosen = false;
             atom.pos.x = atom.start.x;
             atom.pos.y = atom.start.y;
             atom.pos.z = atom.start.z;
@@ -658,4 +630,61 @@
 </body>
 </html>
 
+<!-- /* Atom Spin Vector Arrow */
+let show_spin_vector = true;
 
+let spin_vector = {
+    pos: {
+        x: 0,
+        y: 0,
+        z: 0
+    },
+
+    offset: atom.radius,
+
+    stem: {
+        pos: {
+            x: atom.pos.x,
+            y: atom.pos.y,
+            z: atom.pos.z
+        },
+        radius: atom.radius/10,
+        height: atom.radius
+    },
+
+    head: {
+        radius: atom.radius/5,
+        height: atom.radius/3
+    }
+
+} -->
+
+
+<!-- function drawSpinVector(spin, x, y, z) {
+    if (show_spin_vector == true) {
+        if (spin == up && spin_vector.offset > 0) spin_vector.offset = spin_vector.offset * -1;
+        let stem_y = y - spin_vector.offset;
+        let head_y = y + spin_vector.stem.height/2 - spin_vector.offset;
+        
+        push();
+        rotateX(180); // Orient to appropriate angle
+
+        /* Stem */
+        push();
+        fill(150, 200, 200); // Light Cyan
+        strokeWeight(stroke_weight);
+        translate(x, stem_y, z);
+        cylinder(spin_vector.stem.radius, spin_vector.stem.height, 9, 1);
+        pop();
+        
+        /* Arrow head */
+        push();
+        fill(50, 200, 200); // Cyan
+        strokeWeight(stroke_weight);
+        translate(x, head_y, z);
+        cone(spin_vector.head.radius, spin_vector.head.height, 9, 1, false);
+        pop();
+
+        pop();
+    }
+} -->
