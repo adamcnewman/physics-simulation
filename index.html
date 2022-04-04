@@ -44,33 +44,19 @@
     <script>
         /* CANVAS */
         let canvas;
-        let canvas_width = 1400;
-        let canvas_height = 600;
+        let canvas_width;
+        let canvas_height;
         let bg_color = 245;
         let stroke_weight = 0.1;
 
         /* INTERACTIVE COMPONENETS */
         let reset_button;
-        let reset_button_x = canvas_width/2 - 120;
-        let reset_button_y = canvas_height + 100;
         let fire_button;
-        let fire_button_x;
-        let fire_button_y;
         let atom_speed_slider;
-        let atom_speed_slider_x;
-        let atom_speed_slider_y;
         let angle_slider;
-        let angle_slider_x;
-        let angle_slider_y;
         let angle_display;
-        let angle_display_x;
-        let angle_display_y;
-        let counter;
-        let counter_x;
-        let counter_y;
-        let percent_counter;
-        let percent_counter_x;
-        let percent_counter_y; 
+        let red_counter;
+        let blue_counter;
         let atom_source_select;
         let autofire_checkbox;
 
@@ -189,7 +175,6 @@
             canvas = createCanvas(canvas_width, canvas_height, WEBGL);
             canvas.parent("canvas-container");
             angleMode(DEGREES);
-            // debugMode(100, 10, 0, 0, 0, 20, -250, -100, 0);
             setupInteractiveComponents();
             resetAtom();
         }
@@ -211,15 +196,16 @@
             drawHTML();
         }
 
+
         function setupInteractiveComponents() {
             let h = 0.95*windowHeight;
-            let w = windowWidth/2;
+            let w = windowWidth;
+            red_counter = createP();
+            blue_counter = createP();
             reset_button = createButton('Reset');
-            reset_button.position(w - 120, h);
             reset_button.mousePressed(reset);
 
             fire_button = createButton('Fire Atom');
-            fire_button.position(w - 50, h);
             fire_button.mousePressed(fireSingleAtom);
 
             // atom_radius_slider = createSlider(1, 15, 5);
@@ -227,33 +213,26 @@
             // atom_radius_slider.style('width', '80px');
 
             atom_speed_slider = createSlider(atom.min_speed, atom.max_speed, atom.max_speed/5, 1); // min max start step
-            atom_speed_slider.position(w + 160, h);
             atom_speed_slider.style('width', '80px');
+            atom_speed_slider.size(100);
             speed_display = createP();
-            speed_display.position(w + 160, h+5);
 
             angle_slider = createSlider(0, 360, 0, 15); // min max start step
-            angle_slider.position(w + 40, h);
             angle_slider.style('width', '80px');
+            angle_slider.size(100);
             angle_display = createP();
-            angle_display.position(w + 45, h+5);
 
             atom_source_select = createSelect();
-            atom_source_select.position(w - 250, h);
             atom_source_select.option('Oven');
             atom_source_select.option('Spin Up (Z+)');
             atom_source_select.option('Spin Down (Z-)');
             atom_source_select.changed(sourceSelected);
 
             autofire_checkbox = createCheckbox('Autofire', false);
-            autofire_checkbox.position(w - 50, h - 20);
             autofire_checkbox.changed(toggleAutofire);
 
-            counter = createP();
-            counter.position(50, h);
+            positionInteractiveComponents();
 
-            percent_counter = createP();
-            percent_counter.position(50, h - 20);
         }
 
         function sourceSelected () {
@@ -267,32 +246,34 @@
 
         function windowResized() {
             resizeCanvas(0.9*windowWidth, 0.8*windowHeight);
-            repositionInteractiveComponents();
+            positionInteractiveComponents();
         }   
 
-        function repositionInteractiveComponents() {
-            let h = 0.95*windowHeight;
-            let w = windowWidth/2;
-            reset_button.position(w - 120, h);
-            fire_button.position(w - 50, h);
-            atom_speed_slider.position(w + 160, h);
-            speed_display.position(w + 160, h + 5);
-            angle_slider.position(w + 40, h);
-            angle_display.position(w + 45, h + 5);
-            atom_source_select.position(w - 250, h);
-            autofire_checkbox.position(w - 50, h - 20);
-            counter.position(50, h);
+        function positionInteractiveComponents() {
+            let h = windowHeight;
+            let w = windowWidth;
+
+            red_counter.position        (0.05 * w, 0.90 * h);
+            blue_counter.position       (0.05 * w, 0.93 * h);
+            reset_button.position       (0.20 * w, 0.95 * h);
+            atom_source_select.position (0.30 * w, 0.95 * h);
+            fire_button.position        (0.40 * w, 0.95 * h);
+            autofire_checkbox.position  (0.40 * w, 0.92 * h);
+            atom_speed_slider.position  (0.50 * w, 0.95 * h);
+            speed_display.position      (0.50 * w, 0.91 * h);
+            angle_slider.position       (0.60 * w, 0.95 * h);
+            angle_display.position      (0.60 * w, 0.91 * h);
         }
 
         function drawHTML() {
-            let percent_spin_up = ceil(100 * num_spin_up / (num_spin_up + num_spin_down));
-            let percent_spin_down = 100 - percent_spin_up;
-            if (num_spin_up == 0) { 
-                percent_spin_up = 0;
-                percent_spin_down = 0;
-            }
-            counter.html('# spin up (red): ' + num_spin_up + '     # spin down (blue): ' + num_spin_down);
-            percent_counter.html('spin up (red): ' + percent_spin_up + '%     ' + 'spin down (blue): ' + percent_spin_down + '%');
+            let percent_spin_up = round(100 * num_spin_up / (num_spin_up + num_spin_down), 1).toFixed(1);
+            let percent_spin_down = round(100 - percent_spin_up, 1).toFixed(1);
+
+            if (num_spin_up == 0) percent_spin_up = 0;
+            if (num_spin_down == 0) percent_spin_down = 0;
+
+            red_counter.html ('spin up (red): ' + percent_spin_up + '% - (' + num_spin_up + ')');
+            blue_counter.html('spin down (blue): ' + percent_spin_down + '% - (' + num_spin_down + ')');
             angle_display.html(angle_slider.value() + '°'); // Display angle value under slider
             speed_display.html('Speed: ' + atom_speed_slider.value());
         }
