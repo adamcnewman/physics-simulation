@@ -50,17 +50,23 @@
         let stroke_weight = 0.1;
 
         /* INTERACTIVE COMPONENETS */
-        let reset_button;
-        let fire_button;
-        let atom_speed_slider;
-        let angle_slider;
-        let angle_display;
         let red_counter;
         let blue_counter;
-        let atom_source_select;
+        let reset_button;
+        let pause_checkbox;
+        let fire_button;
         let autofire_checkbox;
+        let atom_source_select;
+        let atom_source_display;
+        let atom_speed_slider;
+        let atom_speed_display;
+        let angle_slider;
+        let angle_display;
+        let atom_radius_slider;
+        let atom_radius_display;
 
         /* STATES */
+        let pause = false;
         let fire = false;
         let autofire = false;
         let spin_chosen = false;
@@ -126,6 +132,8 @@
         let atom = {
             // Sphere Attributes
             radius:     10,
+            min_radius: 1,
+            max_radius: 15,
             detailX:    8,
             detailY:    8,
             // Properties
@@ -198,26 +206,28 @@
 
 
         function setupInteractiveComponents() {
-            let h = 0.95*windowHeight;
-            let w = windowWidth;
             red_counter = createP();
             blue_counter = createP();
+
             reset_button = createButton('Reset');
             reset_button.mousePressed(reset);
+
+            pause_checkbox = createCheckbox('Pause', false);
+            pause_checkbox.changed(togglePause);
 
             fire_button = createButton('Fire Atom');
             fire_button.mousePressed(fireSingleAtom);
 
-            // atom_radius_slider = createSlider(1, 15, 5);
-            // atom_radius_slider.position(10, height + 5);
-            // atom_radius_slider.style('width', '80px');
+            atom_radius_slider = createSlider(atom.min_radius, atom.max_radius, 10);
+            atom_radius_slider.style('width', '80px');
+            atom_radius_display = createP();
 
-            atom_speed_slider = createSlider(atom.min_speed, atom.max_speed, atom.max_speed/5, 1); // min max start step
+            atom_speed_slider = createSlider(atom.min_speed, atom.max_speed, atom.max_speed/5, 1);
             atom_speed_slider.style('width', '80px');
             atom_speed_slider.size(100);
-            speed_display = createP();
+            atom_speed_display = createP();
 
-            angle_slider = createSlider(0, 360, 0, 15); // min max start step
+            angle_slider = createSlider(0, 360, 0, 15);
             angle_slider.style('width', '80px');
             angle_slider.size(100);
             angle_display = createP();
@@ -227,12 +237,12 @@
             atom_source_select.option('Spin Up (Z+)');
             atom_source_select.option('Spin Down (Z-)');
             atom_source_select.changed(sourceSelected);
+            atom_source_display = createP();
 
             autofire_checkbox = createCheckbox('Autofire', false);
             autofire_checkbox.changed(toggleAutofire);
 
             positionInteractiveComponents();
-
         }
 
         function sourceSelected () {
@@ -244,6 +254,10 @@
             autofire = autofire_checkbox.checked() ? true : false;
         }
 
+        function togglePause() {
+            pause = pause_checkbox.checked() ? true : false;
+        }
+
         function windowResized() {
             resizeCanvas(0.9*windowWidth, 0.8*windowHeight);
             positionInteractiveComponents();
@@ -253,16 +267,20 @@
             let h = windowHeight;
             let w = windowWidth;
 
-            red_counter.position        (0.05 * w, 0.90 * h);
-            blue_counter.position       (0.05 * w, 0.93 * h);
-            reset_button.position       (0.20 * w, 0.95 * h);
-            atom_source_select.position (0.30 * w, 0.95 * h);
-            fire_button.position        (0.40 * w, 0.95 * h);
-            autofire_checkbox.position  (0.40 * w, 0.92 * h);
-            atom_speed_slider.position  (0.50 * w, 0.95 * h);
-            speed_display.position      (0.50 * w, 0.91 * h);
-            angle_slider.position       (0.60 * w, 0.95 * h);
-            angle_display.position      (0.60 * w, 0.91 * h);
+            red_counter.position        (0.05 * w, 0.90  * h);
+            blue_counter.position       (0.05 * w, 0.93  * h);
+            reset_button.position       (0.25 * w, 0.95  * h);
+            pause_checkbox.position     (0.25 * w, 0.92  * h);
+            fire_button.position        (0.30 * w, 0.95  * h);
+            autofire_checkbox.position  (0.30 * w, 0.92  * h);
+            atom_source_select.position (0.38 * w, 0.95  * h);
+            atom_source_display.position(0.38 * w, 0.905 * h);
+            atom_speed_slider.position  (0.50 * w, 0.95  * h);
+            atom_speed_display.position (0.50 * w, 0.905 * h);
+            angle_slider.position       (0.60 * w, 0.95  * h);
+            angle_display.position      (0.60 * w, 0.905 * h);
+            atom_radius_slider.position (0.70 * w, 0.95  * h);
+            atom_radius_display.position(0.70 * w, 0.905 * h);
         }
 
         function drawHTML() {
@@ -274,8 +292,10 @@
 
             red_counter.html ('spin up (red): ' + percent_spin_up + '% - (' + num_spin_up + ')');
             blue_counter.html('spin down (blue): ' + percent_spin_down + '% - (' + num_spin_down + ')');
-            angle_display.html(angle_slider.value() + '°'); // Display angle value under slider
-            speed_display.html('Speed: ' + atom_speed_slider.value());
+            angle_display.html('Theta: ' + angle_slider.value() + '°'); // Display angle value under slider
+            atom_speed_display.html('Speed: ' + atom_speed_slider.value());
+            atom_radius_display.html('Radius: ' + atom_radius_slider.value());
+            atom_source_display.html('Atom Source');
         }
       
         function drawAxis() {
@@ -437,7 +457,7 @@
         function drawAtom(spin, x, y, z) {
             // drawSpinVector(spin, x, y, z);
             push();
-            // atom.radius = atom_radius_slider.value(); // Uncomment To allow user to change radius of atom
+            atom.radius = atom_radius_slider.value(); // Uncomment To allow user to change radius of atom
             let angle = angle_slider.value();
             rotateX(angle); // Rotate atom trajectory by the same angle of the magnet
             translate(x, y, z);
@@ -499,7 +519,10 @@
             if (atomEnteredMagnet() && !hasChosenSpin())
                 chooseAtomSpin();
                 
-            if (!atomHitDetector()) { // Atom has not hit detector screen
+            if (pause) {
+                drawAtom(atom.spin, atom.pos.x, atom.pos.y, atom.pos.z);
+                return;
+            } else if (!atomHitDetector()) { // Atom has not hit detector screen
                 fire = true;
                 computeAtomTrajectory();
             } else if (atomHitDetector() && autofire) {
@@ -584,6 +607,7 @@
 
         function reset() {
             resetAtom();
+            fire = false;
             num_spin_down = 0;
             num_spin_up = 0;
         }
