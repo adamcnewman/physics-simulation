@@ -53,8 +53,9 @@
         let canvas_width;
         let canvas_height;
         let bg_color = 240;
-
-        /* INTERACTIVE COMPONENETS */
+        
+        /* HTML & INTERACTIVE COMPONENTS */
+        let instructions;           // Basic instructions about how to manipulate scene with mouse.
         let spin_up_counter;        // Text to show count of spin up atoms.
         let spin_down_counter;      // Text to show count of spin down atoms.
         let reset_button;           // Lets user reset atom count and scene.
@@ -225,6 +226,8 @@
          * (Buttons, sliders, checkboxes, etc.) 
          */
         function setupInteractiveComponents() {
+            instructions = createP();
+
             spin_up_counter = createP();
             spin_down_counter = createP();
 
@@ -272,6 +275,7 @@
             let h = windowHeight;
             let w = windowWidth;
 
+            instructions.position       (0.06 * w, 0.85  * h);
             spin_up_counter.position    (0.05 * w, 0.90  * h);
             spin_down_counter.position  (0.05 * w, 0.93  * h);
             reset_button.position       (0.25 * w, 0.95  * h);
@@ -297,7 +301,8 @@
 
             if (num_spin_up == 0) percent_spin_up = 0;
             if (num_spin_down == 0) percent_spin_down = 0;
-
+            
+            instructions.html('Click and drag to rotate scene, and scroll to zoom in and out!');
             spin_up_counter.html ('spin up (red): ' + percent_spin_up + '% - (' + num_spin_up + ')');
             spin_down_counter.html('spin down (blue): ' + percent_spin_down + '% - (' + num_spin_down + ')');
             angle_display.html('Theta: ' + angle_slider.value() + '°'); // Display angle value under slider
