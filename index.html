@@ -82,6 +82,9 @@
         let num_spin_down = 0;      // Number of spin down atoms in experiment.
         let atom_source = 'Oven';   // Source that atom comes from. 'Oven' is 50/50 chance spin up or spin down.
 
+        let draggedMouse = false;   // Boolean to see if user has dragged their mouse to utilize the 3D functionality.
+        let scrolledMouse = false;  // Boolean to see if user has scrolled their mouse to utilize the 3D functionality.
+
         /* PLATFORM: The 'floor' plane for the experiment. */
         let platform = {
             length:  500,
@@ -221,6 +224,29 @@
             positionInteractiveComponents();
         }   
 
+        /**
+         * Detects if user has scrolled with their mouse a touchpad.
+         */
+        function mouseWheel(event) {
+            scrolledMouse = true;
+        }
+
+        /**
+         *Detects if user has dragged their mouse. 
+         */
+        function mouseDragged() {
+            draggedMouse = true;
+            return false; // Override some default browser behaviour.
+        }
+
+        /**
+         * Returns true if user has used both 3D control functionalities, so
+         * then the instructions can be removed from the screen.
+         */
+        function usedControls() {
+            return draggedMouse == true && scrolledMouse == true;
+        }
+
         /* 
          * Initializes the data and attributes for the html elements.
          * (Buttons, sliders, checkboxes, etc.) 
@@ -302,7 +328,12 @@
             if (num_spin_up == 0) percent_spin_up = 0;
             if (num_spin_down == 0) percent_spin_down = 0;
             
-            instructions.html('Click and drag to rotate scene, and scroll to zoom in and out!');
+            if (!usedControls()) // Show instructions until user has used 3D control functionality.
+                instructions.html('Click and drag to rotate scene, and scroll to zoom in and out!');
+            else if (usedControls())
+                instructions.html(' ');
+
+            
             spin_up_counter.html ('spin up (red): ' + percent_spin_up + '% - (' + num_spin_up + ')');
             spin_down_counter.html('spin down (blue): ' + percent_spin_down + '% - (' + num_spin_down + ')');
             angle_display.html('Theta: ' + angle_slider.value() + '°'); // Display angle value under slider
