@@ -334,7 +334,6 @@
             else if (usedControls())
                 instructions.html(' ');
 
-            
             spin_up_counter.html ('spin up (red): ' + percent_spin_up + '% - (' + num_spin_up + ')');
             spin_down_counter.html('spin down (blue): ' + percent_spin_down + '% - (' + num_spin_down + ')');
             angle_display.html('Theta: ' + angle_slider.value() + '°'); // Display angle value under slider
@@ -604,7 +603,13 @@
                 let r = random(100) / 100;
                 let p = sq(cos(angle/2));
 
-                if (atom_source == 'Spin Up (Z+)') {
+
+                if (angle == 180 && (atom_source != 'Oven')) {
+                    // Fixes edge case where atom goes in wrong direction
+                    // when magnet is rotated 180 degrees, when the atom source
+                    // is either spin up or spin down (not the Oven). 
+                    atom.spin = atom.spin; // ie) do nothing
+                } else if (atom_source == 'Spin Up (Z+)') {
                     if (r <= p)
                         atom.spin = up;
                     else
